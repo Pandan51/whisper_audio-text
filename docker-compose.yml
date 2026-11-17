@@ -1,0 +1,20 @@
+services:
+  transcriber:
+    build: .
+    # Run as your own user so files in ./data and ./models stay yours (no sudo to delete them).
+    # HOST_UID / HOST_GID come from the .env file; without it the container runs as root.
+    user: "${HOST_UID:-0}:${HOST_GID:-0}"
+    volumes:
+      - ./models:/models   # turbo download cache + converted CzechSpeech
+      - ./data:/data       # audio in ./data/input, results in ./data/output
+    mem_limit: 8g          # safety net, several times more than it needs
+    environment:
+      OMP_NUM_THREADS: "4" # makes the default explicit
+
+  # Run once: docker compose run --rm convert
+  convert:
+    build: ./convert
+    profiles: ["setup"]    # not started by `docker compose up`, only on demand
+    user: "${HOST_UID:-0}:${HOST_GID:-0}"
+    volumes:
+      - ./models:/models

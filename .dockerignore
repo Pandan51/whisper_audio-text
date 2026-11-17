@@ -1,0 +1,14 @@
+# Never send models, audio or environments into the image build.
+models/
+data/
+convert/
+.env
+.venv/
+venv/
+__pycache__/
+*.pyc
+.git/
+.idea/
+*.m4a
+*.mp3
+*.wav

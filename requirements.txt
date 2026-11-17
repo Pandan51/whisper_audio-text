@@ -1,0 +1,5 @@
+# Pinned on purpose: newer PyAV breaks decoding with faster-whisper 1.2.1
+# ("unexpected keyword argument 'metadata_errors'"). See SETUP in transcriber.py.
+# After changing this file, run ./update-lock.sh — the Docker build installs from requirements.lock.
+faster-whisper==1.2.1
+av==16.1.0
