@@ -1,5 +1,13 @@
 data/input/*
+!data/input/.gitkeep
+
 data/output/*
+!data/output/.gitkeep
+
 models/czechspeech-ct2/*
+!models/czechspeech-ct2/.gitkeep
+
 models/hf/*
+!models/hf/.gitkeep
+
 .idea
