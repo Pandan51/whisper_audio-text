@@ -266,12 +266,16 @@ class Transcriber:
         self._loaded: dict = {}  # registry key -> WhisperModel
 
     @classmethod
-    def from_env(cls) -> "Transcriber":
-        return cls(
-            cpu_threads=int(os.environ.get("WHISPER_CPU_THREADS", "0")),  # 0 = auto
-            batch_size=int(os.environ.get("WHISPER_BATCH_SIZE", "4")),
-            beam_size=int(os.environ.get("WHISPER_BEAM_SIZE", "5")),
-        )
+    def from_env(cls, **overrides) -> "Transcriber":
+        """Settings from env variables; any override that is not None wins."""
+        settings = {
+            "cpu_threads": int(os.environ.get("WHISPER_CPU_THREADS", "0")),  # 0 = auto
+            "batch_size": int(os.environ.get("WHISPER_BATCH_SIZE", "4")),
+            "beam_size": int(os.environ.get("WHISPER_BEAM_SIZE", "5")),
+        }
+        settings.update({k: v for k, v in overrides.items() if v is not None})
+        log.info("Config: %s", settings)
+        return cls(**settings)
 
     # -- model loading ------------------------------------------------------
 
@@ -429,8 +433,10 @@ def main(argv=None) -> int:
     parser.add_argument("--model", default="auto", choices=["auto", *MODELS])
     parser.add_argument("--language", default=None, help='e.g. "cs" or "en"; detected if omitted')
     parser.add_argument("--out", default=None, help="output file (.txt or .json); default: <audio>.txt")
-    parser.add_argument("--batch-size", type=int, default=4)
+    parser.add_argument("--batch-size", type=int, default=None)
+    parser.add_argument("--beam-size", type=int, default=None)
     parser.add_argument("--quiet", action="store_true", help="do not print segments while working")
+    parser.add_argument("--threads", type=int, default=None, help="0 = auto")
     args = parser.parse_args(argv)
 
     logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
@@ -439,7 +445,12 @@ def main(argv=None) -> int:
         print(f"[{segment.start:7.1f} -> {segment.end:7.1f}] {segment.text}", flush=True)
 
     try:
-        result = Transcriber(batch_size=args.batch_size).transcribe(
+        transcriber = Transcriber.from_env(
+            cpu_threads=args.threads,
+            batch_size=args.batch_size,
+            beam_size=args.beam_size,
+        )
+        result = transcriber.transcribe(
             args.audio,
             model=args.model,
             language=args.language,
