@@ -256,12 +256,22 @@ class Transcriber:
         compute_type: str = "int8",
         cpu_threads: int = 0,
         batch_size: int = 4,
+        beam_size: int = 5,
     ):
         self.device = device
         self.compute_type = compute_type
         self.cpu_threads = cpu_threads
         self.batch_size = batch_size
+        self.beam_size = beam_size
         self._loaded: dict = {}  # registry key -> WhisperModel
+
+    @classmethod
+    def from_env(cls) -> "Transcriber":
+        return cls(
+            cpu_threads=int(os.environ.get("WHISPER_CPU_THREADS", "0")),  # 0 = auto
+            batch_size=int(os.environ.get("WHISPER_BATCH_SIZE", "4")),
+            beam_size=int(os.environ.get("WHISPER_BEAM_SIZE", "5")),
+        )
 
     # -- model loading ------------------------------------------------------
 
@@ -373,6 +383,7 @@ class Transcriber:
                 audio,
                 language=language,
                 batch_size=self.batch_size,
+                beam_size=self.beam_size,
             )
         else:
             raw_segments, _ = whisper.transcribe(
@@ -380,6 +391,7 @@ class Transcriber:
                 language=language,
                 vad_filter=True,                   # skip silence and noise
                 condition_on_previous_text=False,  # one bad window cannot spoil the next
+                beam_size=self.beam_size,
             )
 
         # 3. Collect. `raw_segments` is lazy: the model runs inside this loop.
